@@ -1,4 +1,4 @@
-name: Build
+name: Known_Good Build
 
 # Runs on pull requests, which is the point: every failure this was written for
 # reached the default branch without anything checking it, because nothing ran
@@ -113,3 +113,24 @@ jobs:
         # registered by its CMake but never built here, so they would always
         # report "Not Run".
         run: ctest --output-on-failure --timeout 300 -E "fullbench|fuzzer|zstreamtest"
+      
+      # Collect the runnable products rather than the whole build tree: the
+      # launcher, runner, port tool, the DolRecomp binary staged beside it,
+      # and the Sys data directory the runner expects next to its executable.
+      - name: Stage distributable
+        shell: bash
+        run: |
+          mkdir -p dist
+          find build -type f \( \
+            -name 'ModernGekko' -o -name 'ModernGekko.exe' -o \
+            -name 'moderngekko-run' -o -name 'moderngekko-run.exe' -o \
+            -name 'moderngekko-port' -o -name 'moderngekko-port.exe' -o \
+            -name 'dolrecomp' -o -name 'dolrecomp.exe' \) \
+            -exec cp {} dist/ \;
+          find build -type d -name Sys -exec cp -a {} dist/ \;
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ModernGekko-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: error
